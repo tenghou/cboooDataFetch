@@ -27,13 +27,16 @@ class cbograsp:
         '''
         write data into csv file
         a+ means add the data instead of cover it
+        
+        writerow(): ['1','2','3','4'] just one line
+        writerows(): [('1','2'),('3','4'),('5','6')]: three lines
 
         Args:
             data: A list used for temp data store
         '''
-        csvfile = file(self.filename, 'ab+')
+        csvfile = file(self.filename, 'a+')
         writer = csv.writer(csvfile)
-        writer.writerow(data)
+        writer.writerows(data)
         csvfile.close()
 
     def findByTag(self, tag):
@@ -58,29 +61,34 @@ class cbograsp:
 
     def insertinfo(self):
         '''
-        list[0].split('') cost a lot of time!
         Args:
-	        i: When data is stored 7 data, fresh data[]
-	        which is to change another line in csv file
+            i: When data is stored 7 data,then cast it to tuple type
+               store it in result, fresh data[]
+            data: ('element0',...,'element7')
+            result: [('element0',...,'element7'),
+                     ('element8',...,'element16')...]
         '''
         th = self.findByTag('th')
         i = 0
         j = 0
-
+        temp = ()
         data = []
-        title = []
+        result = []
 
         for nun in th:
             titleuni = pq(nun).text()
             titleRes = titleuni.encode('utf-8')
             #type(titleuni) : unicode
-            title.append(titleRes)
-            #print type(nun)
+            data.append(titleRes)
             if j == 0:
-                title = title[0].split('\xef\xbc\x9a')
+                #'\xef\xbc\x9a' is the unicode of ':'
+                #data:['rank:name']
+                data = data[0].split('\xef\xbc\x9a')
+                #now, data:['rank','name']
                 j += 1
-                #print title
-        self.writecsv(title)
+        temp = tuple(data)
+        result.append(temp)
+        data = []
 
         for year in range(self.year_start, self.year_end+1):
             self.url = 'http://www.cbooo.cn/year?year=%d' % (year)
@@ -88,16 +96,15 @@ class cbograsp:
             for num in td:
                 datauni = pq(num).text()		
                 data.append(datauni.encode('utf-8'))
-                #print data
-
                 if i % 7 == 0:
-                    data = data[0].split(' ')
-
+                    data = data[0].split('. ')
                 i += 1
                 if i % 7 == 0:
-                    self.writecsv(data)
+                    temp = tuple(data)
+                    result.append(temp)
                     data = []
 
+        self.writecsv(result)
         print 'Data grasp and write successful!'
 
     def main(self):
